@@ -1,0 +1,162 @@
+<x-layouts.app :title="'Script Executions'">
+    <div class="mx-auto min-h-screen max-w-[1180px] px-5 py-6 sm:px-8 sm:py-8">
+        <div class="mb-8 flex items-start justify-between gap-4">
+            <nav class="flex items-center gap-2 text-[13px] text-zinc-400">
+                <svg class="size-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                <span>Journal</span>
+                <span class="text-zinc-300">/</span>
+                <span>Migrations</span>
+                <span class="text-zinc-300">/</span>
+                <span class="text-zinc-500">#{{ $migration['id'] }}</span>
+            </nav>
+            <span class="rounded-full bg-zinc-200/80 px-2.5 py-1 text-[10px] font-semibold tracking-[0.14em] text-zinc-500 uppercase">
+                Concept preview — not live data
+            </span>
+        </div>
+
+        <header class="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <h1 class="text-[32px] leading-none font-semibold tracking-tight text-ink">Script Executions</h1>
+                <div class="mt-3 flex flex-wrap items-center gap-2.5 text-sm text-zinc-500">
+                    <span>{{ $migration['source'] }} → {{ $migration['target'] }}</span>
+                    <span class="rounded-md bg-zinc-200/90 px-2 py-0.5 font-mono text-[12px] text-zinc-600">
+                        migration #{{ $migration['id'] }}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 text-zinc-600">
+                        <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                        {{ $migration['status'] }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2.5">
+                <a
+                    href="{{ $migration['repository_url'] }}"
+                    class="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-xs transition hover:bg-zinc-50"
+                >
+                    <svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
+                    </svg>
+                    {{ $migration['repository'] }}
+                </a>
+
+                <form method="POST" action="{{ route('executions.run') }}">
+                    @csrf
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-brand-dark"
+                    >
+                        <svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.06-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z" />
+                        </svg>
+                        Run {{ $migration['run_script'] }}
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        @if (session('status'))
+            <p class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                {{ session('status') }}
+            </p>
+        @endif
+
+        <section class="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div class="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
+                <h2 class="text-sm font-medium text-ink">History for this migration</h2>
+                <p class="text-sm text-zinc-400">{{ count($executions) }} executions</p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[920px] text-left">
+                    <thead>
+                        <tr class="border-b border-zinc-100 text-[11px] font-medium tracking-[0.08em] text-zinc-400 uppercase">
+                            <th class="px-5 py-3 font-medium">Script</th>
+                            <th class="px-3 py-3 font-medium">Status</th>
+                            <th class="px-3 py-3 font-medium">Progress</th>
+                            <th class="px-3 py-3 font-medium">Commit</th>
+                            <th class="px-3 py-3 font-medium">Requested by</th>
+                            <th class="px-3 py-3 font-medium">Started</th>
+                            <th class="px-5 py-3 font-medium">Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100">
+                        @foreach ($executions as $execution)
+                            @php
+                                $percent = (int) round(($execution['processed'] / $execution['total']) * 100);
+                                $statusStyles = [
+                                    'completed' => 'bg-emerald-50 text-emerald-700',
+                                    'failed' => 'bg-red-50 text-red-600',
+                                    'cancelled' => 'bg-zinc-100 text-zinc-500',
+                                ];
+                                $dotStyles = [
+                                    'completed' => 'bg-emerald-500',
+                                    'failed' => 'bg-red-500',
+                                    'cancelled' => 'bg-zinc-400',
+                                ];
+                                $barStyles = [
+                                    'completed' => 'bg-emerald-500',
+                                    'failed' => 'bg-zinc-300',
+                                    'cancelled' => 'bg-zinc-300',
+                                ];
+                                $avatarStyles = [
+                                    'teal' => 'bg-teal-700 text-white',
+                                    'amber' => 'bg-amber-500 text-white',
+                                    'violet' => 'bg-violet-500 text-white',
+                                ];
+                            @endphp
+                            <tr class="text-sm">
+                                <td class="px-5 py-4">
+                                    <div class="font-semibold text-ink">{{ $execution['script'] }}</div>
+                                    <div class="mt-0.5 font-mono text-[12px] text-zinc-400">{{ $execution['id'] }}</div>
+                                </td>
+                                <td class="px-3 py-4">
+                                    <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium {{ $statusStyles[$execution['status']] }}">
+                                        <span class="size-1.5 rounded-full {{ $dotStyles[$execution['status']] }}"></span>
+                                        {{ ucfirst($execution['status']) }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-4">
+                                    <div class="h-1.5 w-40 overflow-hidden rounded-full bg-zinc-100">
+                                        <div class="h-full rounded-full {{ $barStyles[$execution['status']] }}" style="width: {{ $percent }}%"></div>
+                                    </div>
+                                    <div class="mt-1.5 text-[12px] text-zinc-400">
+                                        {{ number_format($execution['processed']) }} / {{ number_format($execution['total']) }} · {{ $percent }}%
+                                    </div>
+                                </td>
+                                <td class="px-3 py-4">
+                                    <span class="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 font-mono text-[12px] text-zinc-600">
+                                        <svg class="size-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <circle cx="6" cy="6" r="2.2" />
+                                            <circle cx="18" cy="6" r="2.2" />
+                                            <circle cx="12" cy="18" r="2.2" />
+                                            <path stroke-linecap="round" d="M8 6h8M12 16V8" />
+                                        </svg>
+                                        {{ $execution['commit'] }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex size-7 items-center justify-center rounded-full text-[11px] font-semibold {{ $avatarStyles[$execution['avatar']] }}">
+                                            {{ $execution['initials'] }}
+                                        </span>
+                                        <span class="text-zinc-700">{{ $execution['requested_by'] }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-4 whitespace-nowrap text-zinc-500">{{ $execution['started'] }}</td>
+                                <td class="px-5 py-4 text-zinc-500">{{ $execution['duration'] }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <p class="mt-5 text-[12px] text-zinc-400">
+            Mock-up of a Cart2Cart “Custom Script Execution” feature. Replace this preview data with live API records when the backend is wired up.
+        </p>
+    </div>
+</x-layouts.app>
