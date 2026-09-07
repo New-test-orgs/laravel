@@ -11,7 +11,7 @@ use Illuminate\Queue\Attributes\Tries;
 use Throwable;
 
 #[Tries(1)]
-#[Timeout(30)]
+#[Timeout(120)]
 class RunScriptExecution implements ShouldQueue
 {
     use Queueable;
