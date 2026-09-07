@@ -30,7 +30,6 @@ class RunScriptExecution implements ShouldQueue
         $this->scriptExecution->update([
             'status' => 'completed',
             'processed' => $this->scriptExecution->total,
-            'commit' => 'demo',
             'finished_at' => now(),
         ]);
     }

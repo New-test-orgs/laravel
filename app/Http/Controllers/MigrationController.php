@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\Github\GithubScriptUrl;
 use App\Support\PreviewJournal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class MigrationController extends Controller
         ]);
     }
 
-    public function store(Request $request, PreviewJournal $journal): RedirectResponse
+    public function store(Request $request, PreviewJournal $journal, GithubScriptUrl $githubScriptUrl): RedirectResponse
     {
         $validated = $request->validate([
             'id' => [
@@ -31,7 +32,7 @@ class MigrationController extends Controller
                     }
                 },
             ],
-            'url' => ['required', 'string', 'url', 'max:2048'],
+            'url' => ['required', 'string', 'url', 'max:2048', $githubScriptUrl],
             'source' => ['nullable', 'string', Rule::in($journal->platforms())],
             'target' => ['nullable', 'string', Rule::in($journal->platforms())],
         ]);
@@ -42,11 +43,15 @@ class MigrationController extends Controller
             (int) $validated['id'],
         );
 
-        $journal->queueRun($migration['id'], $validated['url']);
+        $script = $githubScriptUrl->reference;
+
+        abort_if($script === null, 500);
+
+        $journal->queueRun($migration['id'], $script);
 
         return back()->with(
             'status',
-            "Started temporary migration #{$migration['id']} and queued a run for {$validated['url']}.",
+            "Started temporary migration #{$migration['id']} and queued a run for {$script->url}.",
         );
     }
 }

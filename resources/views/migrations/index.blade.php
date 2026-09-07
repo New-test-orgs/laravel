@@ -43,7 +43,7 @@
             submit="Start migration"
             :open="$errors->hasAny(['id', 'url', 'source', 'target'])"
         >
-            <x-slot:description>Identify the Cart2Cart job and the URL the first script should run against.</x-slot:description>
+            <x-slot:description>Identify the Cart2Cart job and the GitHub commit permalink the first script should run from.</x-slot:description>
 
             <label class="block">
                 <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">Migration ID</span>
@@ -62,13 +62,13 @@
             </label>
 
             <label class="block">
-                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">Run URL</span>
+                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">GitHub URL</span>
                 <input
                     type="url"
                     name="url"
                     required
                     value="{{ old('url') }}"
-                    placeholder="https://example.com/products/old-url-key"
+                    placeholder="https://github.com/cart2cart/cart2cart-migration-scripts/blob/a1b2c3d/scripts/demo.php"
                     class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 text-sm text-ink shadow-xs outline-none transition placeholder:text-zinc-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
                 />
                 @error('url')

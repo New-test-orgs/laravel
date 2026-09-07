@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Github\GithubScriptReference;
 use App\Jobs\RunScriptExecution;
 use App\Models\ScriptExecution;
 use App\Models\StoreMigration;
@@ -80,7 +81,7 @@ class PreviewJournal
     /**
      * @return array<string, mixed>
      */
-    public function queueRun(int $migrationId, string $url): array
+    public function queueRun(int $migrationId, GithubScriptReference $script): array
     {
         $migration = StoreMigration::query()->findOrFail($migrationId);
 
@@ -89,8 +90,8 @@ class PreviewJournal
             'status' => 'queued',
             'processed' => 0,
             'total' => 5000,
-            'commit' => 'pending',
-            'url' => $url,
+            'commit' => $script->sha,
+            'url' => $script->url,
             'requested_by' => $migration->owner,
             'initials' => $migration->initials,
             'avatar' => $migration->avatar,
@@ -133,7 +134,7 @@ class PreviewJournal
             'target' => $migration['target'],
             'status' => ucfirst($migration['status']),
             'repository' => $migration['repository'],
-            'repository_url' => 'https://github.com',
+            'repository_url' => 'https://github.com/'.config('services.github.allowed_repositories')[0],
             'run_script' => DemoMigrationScript::NAME,
         ];
     }

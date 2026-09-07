@@ -20,7 +20,7 @@ class RunScriptExecutionTest extends TestCase
             'status' => 'queued',
             'processed' => 0,
             'total' => 5000,
-            'commit' => 'pending',
+            'commit' => self::GITHUB_FULL_SHA,
             'finished_at' => null,
         ]);
 
@@ -30,7 +30,7 @@ class RunScriptExecutionTest extends TestCase
 
         $this->assertSame('completed', $execution->status);
         $this->assertSame(5000, $execution->processed);
-        $this->assertSame('demo', $execution->commit);
+        $this->assertSame(self::GITHUB_FULL_SHA, $execution->commit);
         $this->assertNotNull($execution->finished_at);
 
         Sleep::assertSleptTimes(5);

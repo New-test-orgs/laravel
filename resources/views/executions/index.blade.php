@@ -63,17 +63,17 @@
             :submit="'Queue run'"
             :open="$errors->has('url')"
         >
-            <x-slot:description>Queue a custom script against this migration.</x-slot:description>
+            <x-slot:description>Paste a GitHub file or folder permalink for a specific commit.</x-slot:description>
 
             <label class="block">
-                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">URL</span>
+                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">GitHub URL</span>
                 <input
                     type="url"
                     name="url"
                     value="{{ old('url') }}"
                     required
                     autofocus
-                    placeholder="https://example.com/products/old-url-key"
+                    placeholder="https://github.com/cart2cart/cart2cart-migration-scripts/blob/a1b2c3d/scripts/demo.php"
                     class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 text-sm text-ink shadow-xs outline-none transition placeholder:text-zinc-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
                 />
                 @error('url')

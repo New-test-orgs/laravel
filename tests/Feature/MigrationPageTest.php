@@ -37,10 +37,13 @@ class MigrationPageTest extends TestCase
     public function test_creates_a_temporary_migration_without_platforms(): void
     {
         Queue::fake([RunScriptExecution::class]);
+        $this->fakeGithubCommitLookup();
+
+        $url = $this->allowedGithubScriptUrl();
 
         $response = $this->from('/')->post('/migrations', [
             'id' => 44102,
-            'url' => 'https://shop.example/products/old-url-key',
+            'url' => $url,
         ]);
 
         $response->assertRedirect('/');
@@ -55,7 +58,7 @@ class MigrationPageTest extends TestCase
             ->assertOk()
             ->assertSee('Script Executions')
             ->assertSee('Unspecified')
-            ->assertSee('https://shop.example/products/old-url-key');
+            ->assertSee($url);
 
         $this->assertDatabaseHas('store_migrations', [
             'id' => 44102,
@@ -68,22 +71,25 @@ class MigrationPageTest extends TestCase
             'store_migration_id' => 44102,
             'script' => 'demo-script',
             'status' => 'queued',
-            'url' => 'https://shop.example/products/old-url-key',
+            'url' => $url,
+            'commit' => self::GITHUB_FULL_SHA,
         ]);
 
-        Queue::assertPushed(RunScriptExecution::class, function (RunScriptExecution $job): bool {
+        Queue::assertPushed(RunScriptExecution::class, function (RunScriptExecution $job) use ($url): bool {
             return $job->scriptExecution->store_migration_id === 44102
-                && $job->scriptExecution->url === 'https://shop.example/products/old-url-key';
+                && $job->scriptExecution->url === $url
+                && $job->scriptExecution->commit === self::GITHUB_FULL_SHA;
         });
     }
 
     public function test_creates_a_temporary_migration_with_source_and_target(): void
     {
         Queue::fake([RunScriptExecution::class]);
+        $this->fakeGithubCommitLookup();
 
         $response = $this->from('/')->post('/migrations', [
             'id' => 44102,
-            'url' => 'https://shop.example/products/old-url-key',
+            'url' => $this->allowedGithubScriptUrl(),
             'source' => 'OpenCart',
             'target' => 'Shopify',
         ]);
@@ -116,13 +122,15 @@ class MigrationPageTest extends TestCase
 
     public function test_rejects_a_duplicate_migration_id(): void
     {
+        $this->fakeGithubCommitLookup();
+
         StoreMigration::factory()->create([
             'id' => 92831,
         ]);
 
         $response = $this->from('/')->post('/migrations', [
             'id' => 92831,
-            'url' => 'https://shop.example/products/old-url-key',
+            'url' => $this->allowedGithubScriptUrl(),
         ]);
 
         $response->assertRedirect('/');
@@ -144,9 +152,11 @@ class MigrationPageTest extends TestCase
 
     public function test_rejects_unknown_platforms(): void
     {
+        $this->fakeGithubCommitLookup();
+
         $response = $this->from('/')->post('/migrations', [
             'id' => 44102,
-            'url' => 'https://shop.example/products/old-url-key',
+            'url' => $this->allowedGithubScriptUrl(),
             'source' => 'NotACart',
             'target' => 'AlsoFake',
         ]);

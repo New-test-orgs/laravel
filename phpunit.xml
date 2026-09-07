@@ -32,5 +32,6 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="GITHUB_ALLOWED_REPOSITORIES" value="cart2cart/cart2cart-migration-scripts"/>
     </php>
 </phpunit>
