@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Github\GithubAllowedRepositories;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Http;
@@ -21,7 +22,7 @@ abstract class TestCase extends BaseTestCase
     ): string {
         $suffix = $path === '' ? '' : '/'.$path;
 
-        return "https://github.com/cart2cart/cart2cart-migration-scripts/{$kind}/{$sha}{$suffix}";
+        return GithubAllowedRepositories::url()."/{$kind}/{$sha}{$suffix}";
     }
 
     protected function fakeGithubCommitLookup(string $fullSha = self::GITHUB_FULL_SHA, int $status = 200): void

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Github;
 
+use App\Github\GithubAllowedRepositories;
 use App\Github\GithubObjectKind;
 use App\Github\GithubUrlParser;
 use App\Github\InvalidGithubScriptUrlException;
@@ -16,15 +17,15 @@ class GithubUrlParserTest extends TestCase
     {
         parent::setUp();
 
-        $this->parser = new GithubUrlParser;
+        $this->parser = $this->app->make(GithubUrlParser::class);
     }
 
     public function test_parses_a_blob_permalink_with_a_short_sha(): void
     {
         $reference = $this->parser->parse($this->allowedGithubScriptUrl());
 
-        $this->assertSame('cart2cart', $reference->owner);
-        $this->assertSame('cart2cart-migration-scripts', $reference->repo);
+        $this->assertSame(GithubAllowedRepositories::OWNER, $reference->owner);
+        $this->assertSame(GithubAllowedRepositories::REPO, $reference->repo);
         $this->assertSame(self::GITHUB_SHORT_SHA, $reference->sha);
         $this->assertSame('scripts/demo.php', $reference->path);
         $this->assertSame(GithubObjectKind::Blob, $reference->kind);
@@ -52,7 +53,7 @@ class GithubUrlParserTest extends TestCase
     public function test_ignores_www_and_query_string(): void
     {
         $reference = $this->parser->parse(
-            'https://www.github.com/cart2cart/cart2cart-migration-scripts/blob/'.self::GITHUB_SHORT_SHA.'/scripts/demo.php?plain=1',
+            'https://www.github.com/'.GithubAllowedRepositories::slug().'/blob/'.self::GITHUB_SHORT_SHA.'/scripts/demo.php?plain=1',
         );
 
         $this->assertSame('scripts/demo.php', $reference->path);
@@ -79,7 +80,7 @@ class GithubUrlParserTest extends TestCase
                 'The URL must point to github.com.',
             ],
             'branch name' => [
-                'https://github.com/cart2cart/cart2cart-migration-scripts/blob/main/scripts/demo.php',
+                GithubAllowedRepositories::url().'/blob/main/scripts/demo.php',
                 'The URL must include a commit SHA, not a branch or tag name.',
             ],
             'other repository' => [
@@ -87,15 +88,15 @@ class GithubUrlParserTest extends TestCase
                 'That repository is not on the allow-list.',
             ],
             'commit page' => [
-                'https://github.com/cart2cart/cart2cart-migration-scripts/commit/'.self::GITHUB_SHORT_SHA,
+                GithubAllowedRepositories::url().'/commit/'.self::GITHUB_SHORT_SHA,
                 'The URL must be a GitHub blob or tree permalink.',
             ],
             'blob without path' => [
-                'https://github.com/cart2cart/cart2cart-migration-scripts/blob/'.self::GITHUB_SHORT_SHA,
+                GithubAllowedRepositories::url().'/blob/'.self::GITHUB_SHORT_SHA,
                 'A file permalink must include a path after the commit SHA.',
             ],
             'path traversal' => [
-                'https://github.com/cart2cart/cart2cart-migration-scripts/blob/'.self::GITHUB_SHORT_SHA.'/../secret.php',
+                GithubAllowedRepositories::url().'/blob/'.self::GITHUB_SHORT_SHA.'/../secret.php',
                 'The GitHub path is not valid.',
             ],
         ];

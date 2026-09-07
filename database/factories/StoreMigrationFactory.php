@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Github\GithubAllowedRepositories;
 use App\Models\StoreMigration;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,7 +21,7 @@ class StoreMigrationFactory extends Factory
             'source' => 'Magento 1.9',
             'target' => 'Shopify',
             'status' => 'active',
-            'repository' => 'cart2cart-migration-scripts',
+            'repository' => GithubAllowedRepositories::REPO,
             'owner' => 'You',
             'initials' => 'YO',
             'avatar' => 'teal',

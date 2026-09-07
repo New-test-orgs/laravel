@@ -68,7 +68,7 @@
                     name="url"
                     required
                     value="{{ old('url') }}"
-                    placeholder="https://github.com/cart2cart/cart2cart-migration-scripts/blob/a1b2c3d/scripts/demo.php"
+                    placeholder="{{ $scriptUrlPlaceholder }}"
                     class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 text-sm text-ink shadow-xs outline-none transition placeholder:text-zinc-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
                 />
                 @error('url')

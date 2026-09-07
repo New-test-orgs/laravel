@@ -37,12 +37,6 @@ return [
 
     'github' => [
         'token' => env('GITHUB_TOKEN'),
-        'allowed_repositories' => array_values(array_filter(array_map(
-            trim(...),
-            explode(',', (string) env(
-                'https://github.com/cart2cart/cart2cart-customization-laravel',
-            )),
-        ))),
     ],
 
 ];

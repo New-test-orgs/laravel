@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Github;
 
+use App\Github\GithubAllowedRepositories;
 use App\Github\GithubCommitResolver;
 use App\Github\GithubObjectKind;
 use App\Github\GithubScriptReference;
@@ -22,7 +23,7 @@ class GithubCommitResolverTest extends TestCase
         $this->assertSame(GithubObjectKind::Blob, $resolved->kind);
         $this->assertSame('scripts/demo.php', $resolved->path);
 
-        Http::assertSent(fn (Request $request): bool => $request->url() === 'https://api.github.com/repos/cart2cart/cart2cart-migration-scripts/commits/'.self::GITHUB_SHORT_SHA);
+        Http::assertSent(fn (Request $request): bool => $request->url() === 'https://api.github.com/repos/'.GithubAllowedRepositories::slug().'/commits/'.self::GITHUB_SHORT_SHA);
     }
 
     public function test_rejects_a_commit_that_github_does_not_know(): void
@@ -38,8 +39,8 @@ class GithubCommitResolverTest extends TestCase
     private function shortReference(): GithubScriptReference
     {
         return new GithubScriptReference(
-            owner: 'cart2cart',
-            repo: 'cart2cart-migration-scripts',
+            owner: GithubAllowedRepositories::OWNER,
+            repo: GithubAllowedRepositories::REPO,
             sha: self::GITHUB_SHORT_SHA,
             path: 'scripts/demo.php',
             kind: GithubObjectKind::Blob,

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Github\GithubAllowedRepositories;
 use App\Github\GithubScriptReference;
 use App\Jobs\RunScriptExecution;
 use App\Models\ScriptExecution;
@@ -24,12 +25,19 @@ class PreviewJournal
         'PrestaShop',
     ];
 
+    public function __construct(private GithubAllowedRepositories $githubRepositories) {}
+
     /**
      * @return list<string>
      */
     public function platforms(): array
     {
         return self::PLATFORMS;
+    }
+
+    public function scriptUrlPlaceholder(): string
+    {
+        return $this->githubRepositories->examplePermalink();
     }
 
     /**
@@ -70,7 +78,7 @@ class PreviewJournal
             'source' => $source ?: 'Unspecified',
             'target' => $target ?: 'Unspecified',
             'status' => 'active',
-            'repository' => 'cart2cart-migration-scripts',
+            'repository' => GithubAllowedRepositories::REPO,
             'owner' => 'You',
             'initials' => 'YO',
             'avatar' => 'teal',
@@ -134,7 +142,8 @@ class PreviewJournal
             'target' => $migration['target'],
             'status' => ucfirst($migration['status']),
             'repository' => $migration['repository'],
-            'repository_url' => 'https://github.com/'.config('services.github.allowed_repositories')[0],
+            'repository_url' => $this->githubRepositories->primaryUrl(),
+            'script_url_placeholder' => $this->githubRepositories->examplePermalink(),
             'run_script' => DemoMigrationScript::NAME,
         ];
     }

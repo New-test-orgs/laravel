@@ -16,6 +16,7 @@ class MigrationController extends Controller
         return view('migrations.index', [
             'migrations' => $journal->migrations(),
             'platforms' => $journal->platforms(),
+            'scriptUrlPlaceholder' => $journal->scriptUrlPlaceholder(),
         ]);
     }
 

@@ -9,6 +9,8 @@ class GithubUrlParser
      */
     private const ALLOWED_HOSTS = ['github.com', 'www.github.com'];
 
+    public function __construct(private GithubAllowedRepositories $allowedRepositories) {}
+
     public function parse(string $url): GithubScriptReference
     {
         $parts = parse_url($url);
@@ -82,14 +84,6 @@ class GithubUrlParser
 
     private function isAllowedRepository(string $owner, string $repo): bool
     {
-        $candidate = strtolower($owner.'/'.$repo);
-
-        foreach (config('services.github.allowed_repositories') as $allowed) {
-            if (strtolower((string) $allowed) === $candidate) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->allowedRepositories->contains($owner, $repo);
     }
 }
