@@ -16,7 +16,7 @@ class GithubUrlParser
         $parts = parse_url($url);
 
         if ($parts === false || ! isset($parts['host'], $parts['path'])) {
-            throw new InvalidGithubScriptUrlException('Enter a GitHub file or folder permalink for a specific commit.');
+            throw new InvalidGithubScriptUrlException('Enter a GitHub file permalink for a specific commit.');
         }
 
         $host = strtolower($parts['host']);
@@ -31,15 +31,19 @@ class GithubUrlParser
         ));
 
         if (count($segments) < 4) {
-            throw new InvalidGithubScriptUrlException('Enter a GitHub file or folder permalink for a specific commit.');
+            throw new InvalidGithubScriptUrlException('Enter a GitHub file permalink for a specific commit.');
         }
 
         [$owner, $repo, $kindSegment, $sha] = $segments;
 
         $kind = GithubObjectKind::tryFrom(strtolower($kindSegment));
 
-        if ($kind === null) {
-            throw new InvalidGithubScriptUrlException('The URL must be a GitHub blob or tree permalink.');
+        if ($kind === GithubObjectKind::Tree) {
+            throw new InvalidGithubScriptUrlException('Paste a GitHub file permalink, not a folder.');
+        }
+
+        if ($kind !== GithubObjectKind::Blob) {
+            throw new InvalidGithubScriptUrlException('The URL must be a GitHub file permalink.');
         }
 
         if (preg_match('/^[0-9a-f]{7,40}$/i', $sha) !== 1) {
@@ -48,7 +52,7 @@ class GithubUrlParser
 
         $path = $this->normalizedPath(array_slice($segments, 4));
 
-        if ($kind === GithubObjectKind::Blob && $path === '') {
+        if ($path === '') {
             throw new InvalidGithubScriptUrlException('A file permalink must include a path after the commit SHA.');
         }
 

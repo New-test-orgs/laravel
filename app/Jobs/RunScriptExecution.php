@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
+use App\Github\GithubScriptFetcher;
+use App\Github\GithubScriptLoader;
+use App\Github\GithubUrlParser;
 use App\Models\ScriptExecution;
-use App\Scripts\MigrationScript;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Timeout;
@@ -11,20 +13,27 @@ use Illuminate\Queue\Attributes\Tries;
 use Throwable;
 
 #[Tries(1)]
-#[Timeout(120)]
+#[Timeout(1800)]
 class RunScriptExecution implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(public ScriptExecution $scriptExecution) {}
 
-    public function handle(MigrationScript $script): void
-    {
+    public function handle(
+        GithubUrlParser $parser,
+        GithubScriptFetcher $fetcher,
+        GithubScriptLoader $loader,
+    ): void {
         $this->scriptExecution->update([
             'status' => 'running',
             'started_at' => now(),
         ]);
 
+        $reference = $parser->parse((string) $this->scriptExecution->url)
+            ->withSha((string) $this->scriptExecution->commit);
+
+        $script = $loader->load($fetcher->fetch($reference));
         $script->handle($this->scriptExecution);
 
         $this->scriptExecution->update([

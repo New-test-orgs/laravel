@@ -36,6 +36,6 @@ class ScriptExecutionController extends Controller
 
         $journal->queueRun($migration, $script);
 
-        return back()->with('status', "Queued demo-script for migration #{$migration} with {$script->url}.");
+        return back()->with('status', "Queued {$script->filename()} for migration #{$migration} with {$script->url}.");
     }
 }

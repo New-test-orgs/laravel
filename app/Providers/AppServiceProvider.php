@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Scripts\DemoMigrationScript;
-use App\Scripts\MigrationScript;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 
@@ -14,7 +12,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(MigrationScript::class, DemoMigrationScript::class);
+        //
     }
 
     /**

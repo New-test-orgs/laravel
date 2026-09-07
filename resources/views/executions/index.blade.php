@@ -63,7 +63,7 @@
             :submit="'Queue run'"
             :open="$errors->has('url')"
         >
-            <x-slot:description>Paste a GitHub file or folder permalink for a specific commit.</x-slot:description>
+            <x-slot:description>Paste a GitHub file permalink for a specific commit.</x-slot:description>
 
             <label class="block">
                 <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">GitHub URL</span>

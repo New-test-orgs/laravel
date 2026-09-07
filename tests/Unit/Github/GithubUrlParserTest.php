@@ -28,26 +28,8 @@ class GithubUrlParserTest extends TestCase
         $this->assertSame(GithubAllowedRepositories::REPO, $reference->repo);
         $this->assertSame(self::GITHUB_SHORT_SHA, $reference->sha);
         $this->assertSame('scripts/demo.php', $reference->path);
+        $this->assertSame('demo.php', $reference->filename());
         $this->assertSame(GithubObjectKind::Blob, $reference->kind);
-    }
-
-    public function test_parses_a_tree_permalink_for_a_folder(): void
-    {
-        $url = $this->allowedGithubScriptUrl('tree', self::GITHUB_FULL_SHA, 'scripts/magento');
-
-        $reference = $this->parser->parse($url);
-
-        $this->assertSame(GithubObjectKind::Tree, $reference->kind);
-        $this->assertSame(self::GITHUB_FULL_SHA, $reference->sha);
-        $this->assertSame('scripts/magento', $reference->path);
-    }
-
-    public function test_parses_a_tree_permalink_for_the_repository_root(): void
-    {
-        $reference = $this->parser->parse($this->allowedGithubScriptUrl('tree', self::GITHUB_SHORT_SHA, ''));
-
-        $this->assertSame(GithubObjectKind::Tree, $reference->kind);
-        $this->assertSame('', $reference->path);
     }
 
     public function test_ignores_www_and_query_string(): void
@@ -89,7 +71,11 @@ class GithubUrlParserTest extends TestCase
             ],
             'commit page' => [
                 GithubAllowedRepositories::url().'/commit/'.self::GITHUB_SHORT_SHA,
-                'The URL must be a GitHub blob or tree permalink.',
+                'The URL must be a GitHub file permalink.',
+            ],
+            'tree folder' => [
+                GithubAllowedRepositories::url().'/tree/'.self::GITHUB_SHORT_SHA.'/scripts',
+                'Paste a GitHub file permalink, not a folder.',
             ],
             'blob without path' => [
                 GithubAllowedRepositories::url().'/blob/'.self::GITHUB_SHORT_SHA,

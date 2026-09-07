@@ -18,6 +18,11 @@ final readonly class GithubScriptReference
         return $this->owner.'/'.$this->repo;
     }
 
+    public function filename(): string
+    {
+        return basename($this->path);
+    }
+
     public function withSha(string $sha): self
     {
         return new self(

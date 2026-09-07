@@ -25,7 +25,7 @@ class GithubScriptUrl implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! is_string($value)) {
-            $fail('Enter a GitHub file or folder permalink for a specific commit.');
+            $fail('Enter a GitHub file permalink for a specific commit.');
 
             return;
         }

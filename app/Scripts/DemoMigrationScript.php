@@ -9,9 +9,9 @@ class DemoMigrationScript implements MigrationScript
 {
     public const NAME = 'demo-script';
 
-    public const STEPS = 5;
+    public const STEPS = 15;
 
-    public const STEP_SECONDS = 15;
+    public const STEP_SECONDS = 5;
 
     public function handle(ScriptExecution $execution): void
     {

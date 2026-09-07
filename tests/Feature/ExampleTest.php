@@ -20,7 +20,7 @@ class ExampleTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Script Executions');
-        $response->assertSee('demo-script');
+        $response->assertSee('Run script');
         $response->assertSee('History for this migration');
         $response->assertSee('run-script-modal');
     }
@@ -49,7 +49,7 @@ class ExampleTest extends TestCase
 
         $this->assertDatabaseHas('script_executions', [
             'store_migration_id' => 92831,
-            'script' => 'demo-script',
+            'script' => 'demo.php',
             'status' => 'queued',
             'url' => $url,
             'commit' => self::GITHUB_FULL_SHA,

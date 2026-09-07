@@ -52,7 +52,7 @@ class MigrationPageTest extends TestCase
         $this->get('/')
             ->assertSee('#44102')
             ->assertSee('Unspecified')
-            ->assertSee('demo-script');
+            ->assertSee('demo.php');
 
         $this->get('/migrations/44102')
             ->assertOk()
@@ -69,7 +69,7 @@ class MigrationPageTest extends TestCase
 
         $this->assertDatabaseHas('script_executions', [
             'store_migration_id' => 44102,
-            'script' => 'demo-script',
+            'script' => 'demo.php',
             'status' => 'queued',
             'url' => $url,
             'commit' => self::GITHUB_FULL_SHA,

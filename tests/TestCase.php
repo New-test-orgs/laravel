@@ -36,4 +36,40 @@ abstract class TestCase extends BaseTestCase
             ),
         ]);
     }
+
+    protected function githubScriptFixture(string $name): string
+    {
+        $contents = file_get_contents(base_path('tests/Fixtures/github-scripts/'.$name.'.php'));
+
+        $this->assertIsString($contents);
+
+        return $contents;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected function fakeGithubScriptContents(
+        string $fixture = 'completes',
+        string $path = 'scripts/demo.php',
+        int $status = 200,
+        ?array $payload = null,
+    ): void {
+        Http::preventStrayRequests();
+
+        $source = $this->githubScriptFixture($fixture);
+
+        Http::fake([
+            'https://api.github.com/repos/*/contents/*' => Http::response(
+                $payload ?? [
+                    'type' => 'file',
+                    'encoding' => 'base64',
+                    'size' => strlen($source),
+                    'path' => $path,
+                    'content' => base64_encode($source),
+                ],
+                $status,
+            ),
+        ]);
+    }
 }

@@ -7,7 +7,6 @@ use App\Github\GithubScriptReference;
 use App\Jobs\RunScriptExecution;
 use App\Models\ScriptExecution;
 use App\Models\StoreMigration;
-use App\Scripts\DemoMigrationScript;
 
 class PreviewJournal
 {
@@ -94,7 +93,7 @@ class PreviewJournal
         $migration = StoreMigration::query()->findOrFail($migrationId);
 
         $execution = $migration->scriptExecutions()->create([
-            'script' => DemoMigrationScript::NAME,
+            'script' => $script->filename(),
             'status' => 'queued',
             'processed' => 0,
             'total' => 5000,
@@ -144,7 +143,7 @@ class PreviewJournal
             'repository' => $migration['repository'],
             'repository_url' => $this->githubRepositories->primaryUrl(),
             'script_url_placeholder' => $this->githubRepositories->examplePermalink(),
-            'run_script' => DemoMigrationScript::NAME,
+            'run_script' => 'script',
         ];
     }
 }

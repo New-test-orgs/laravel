@@ -4,17 +4,15 @@ namespace Tests\Feature\Jobs;
 
 use App\Jobs\RunScriptExecution;
 use App\Models\ScriptExecution;
-use App\Scripts\MigrationScript;
-use Illuminate\Support\Sleep;
-use Mockery\MockInterface;
-use RuntimeException;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RunScriptExecutionTest extends TestCase
 {
-    public function test_completes_the_demo_script_after_queued_delays(): void
+    public function test_downloads_and_completes_the_github_script(): void
     {
-        Sleep::fake();
+        Storage::fake('local');
+        $this->fakeGithubScriptContents();
 
         $execution = ScriptExecution::factory()->create([
             'status' => 'queued',
@@ -32,15 +30,12 @@ class RunScriptExecutionTest extends TestCase
         $this->assertSame(5000, $execution->processed);
         $this->assertSame(self::GITHUB_FULL_SHA, $execution->commit);
         $this->assertNotNull($execution->finished_at);
-
-        Sleep::assertSleptTimes(5);
     }
 
     public function test_marks_the_execution_as_failed_when_the_script_throws(): void
     {
-        $this->mock(MigrationScript::class, function (MockInterface $mock): void {
-            $mock->expects('handle')->andThrow(new RuntimeException('demo script failed'));
-        });
+        Storage::fake('local');
+        $this->fakeGithubScriptContents('fails');
 
         $execution = ScriptExecution::factory()->create([
             'status' => 'queued',
@@ -48,7 +43,7 @@ class RunScriptExecutionTest extends TestCase
 
         try {
             RunScriptExecution::dispatchSync($execution);
-        } catch (RuntimeException) {
+        } catch (\RuntimeException) {
         }
 
         $execution->refresh();
