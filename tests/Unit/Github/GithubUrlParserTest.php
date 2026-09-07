@@ -42,6 +42,17 @@ class GithubUrlParserTest extends TestCase
         $this->assertSame(GithubObjectKind::Blob, $reference->kind);
     }
 
+    public function test_parses_a_blob_permalink_from_new_test_orgs_laravel(): void
+    {
+        $reference = $this->parser->parse(
+            'https://github.com/New-test-orgs/laravel/blob/'.self::GITHUB_SHORT_SHA.'/scripts/demo.php',
+        );
+
+        $this->assertSame('New-test-orgs', $reference->owner);
+        $this->assertSame('laravel', $reference->repo);
+        $this->assertSame('scripts/demo.php', $reference->path);
+    }
+
     #[DataProvider('invalidUrls')]
     public function test_rejects_urls_that_are_not_allowed_commit_permalinks(string $url, string $message): void
     {

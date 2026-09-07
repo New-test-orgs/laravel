@@ -8,6 +8,14 @@ class GithubAllowedRepositories
 
     public const REPO = 'cart2cart-customization-laravel';
 
+    /**
+     * @var list<string>
+     */
+    private const ALLOWED_SLUGS = [
+        self::OWNER.'/'.self::REPO,
+        'New-test-orgs/laravel',
+    ];
+
     public static function slug(): string
     {
         return self::OWNER.'/'.self::REPO;
@@ -20,8 +28,15 @@ class GithubAllowedRepositories
 
     public function contains(string $owner, string $repo): bool
     {
-        return strtolower($owner) === strtolower(self::OWNER)
-            && strtolower($repo) === strtolower(self::REPO);
+        $slug = strtolower($owner.'/'.$repo);
+
+        foreach (self::ALLOWED_SLUGS as $allowedSlug) {
+            if ($slug === strtolower($allowedSlug)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function primaryUrl(): string

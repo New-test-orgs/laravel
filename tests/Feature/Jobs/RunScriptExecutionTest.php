@@ -5,6 +5,7 @@ namespace Tests\Feature\Jobs;
 use App\Jobs\RunScriptExecution;
 use App\Models\ScriptExecution;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Sleep;
 use Tests\TestCase;
 
 class RunScriptExecutionTest extends TestCase
@@ -30,6 +31,30 @@ class RunScriptExecutionTest extends TestCase
         $this->assertSame(5000, $execution->processed);
         $this->assertSame(self::GITHUB_FULL_SHA, $execution->commit);
         $this->assertNotNull($execution->finished_at);
+    }
+
+    public function test_runs_the_repository_demo_script_with_queued_delays(): void
+    {
+        Sleep::fake();
+        Storage::fake('local');
+
+        $source = file_get_contents(base_path('scripts/demo.php'));
+        $this->assertIsString($source);
+        $this->fakeGithubScriptContents(source: $source);
+
+        $execution = ScriptExecution::factory()->create([
+            'status' => 'queued',
+            'processed' => 0,
+            'total' => 5000,
+        ]);
+
+        RunScriptExecution::dispatchSync($execution);
+
+        $execution->refresh();
+
+        $this->assertSame('completed', $execution->status);
+        $this->assertSame(5000, $execution->processed);
+        Sleep::assertSleptTimes(15);
     }
 
     public function test_marks_the_execution_as_failed_when_the_script_throws(): void

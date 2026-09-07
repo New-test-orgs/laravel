@@ -54,10 +54,11 @@ abstract class TestCase extends BaseTestCase
         string $path = 'scripts/demo.php',
         int $status = 200,
         ?array $payload = null,
+        ?string $source = null,
     ): void {
         Http::preventStrayRequests();
 
-        $source = $this->githubScriptFixture($fixture);
+        $source ??= $this->githubScriptFixture($fixture);
 
         Http::fake([
             'https://api.github.com/repos/*/contents/*' => Http::response(
