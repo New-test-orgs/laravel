@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 #[Tries(1)]
@@ -25,9 +26,18 @@ class RunScriptExecution implements ShouldQueue
         GithubScriptFetcher $fetcher,
         GithubScriptLoader $loader,
     ): void {
+        Log::withContext([
+            'script_execution_id' => $this->scriptExecution->id,
+        ]);
+
         $this->scriptExecution->update([
             'status' => 'running',
             'started_at' => now(),
+        ]);
+
+        Log::info('Script execution started', [
+            'url' => $this->scriptExecution->url,
+            'commit' => $this->scriptExecution->commit,
         ]);
 
         $reference = $parser->parse((string) $this->scriptExecution->url)
@@ -41,6 +51,8 @@ class RunScriptExecution implements ShouldQueue
             'processed' => $this->scriptExecution->total,
             'finished_at' => now(),
         ]);
+
+        Log::info('Script execution completed');
     }
 
     public function failed(?Throwable $exception): void
@@ -48,6 +60,11 @@ class RunScriptExecution implements ShouldQueue
         $this->scriptExecution->update([
             'status' => 'failed',
             'finished_at' => now(),
+        ]);
+
+        Log::error('Script execution failed', [
+            'script_execution_id' => $this->scriptExecution->id,
+            'exception' => $exception,
         ]);
     }
 }

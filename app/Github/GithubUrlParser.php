@@ -34,7 +34,7 @@ class GithubUrlParser
             throw new InvalidGithubScriptUrlException('Enter a GitHub file permalink for a specific commit.');
         }
 
-        [$owner, $repo, $kindSegment, $sha] = $segments;
+        [$owner, $repo, $kindSegment, $ref] = $segments;
 
         $kind = GithubObjectKind::tryFrom(strtolower($kindSegment));
 
@@ -46,14 +46,12 @@ class GithubUrlParser
             throw new InvalidGithubScriptUrlException('The URL must be a GitHub file permalink.');
         }
 
-        if (preg_match('/^[0-9a-f]{7,40}$/i', $sha) !== 1) {
-            throw new InvalidGithubScriptUrlException('The URL must include a commit SHA, not a branch or tag name.');
-        }
+        $sha = $this->normalizedRef($ref);
 
         $path = $this->normalizedPath(array_slice($segments, 4));
 
         if ($path === '') {
-            throw new InvalidGithubScriptUrlException('A file permalink must include a path after the commit SHA.');
+            throw new InvalidGithubScriptUrlException('A file permalink must include a path after the commit, branch, or tag.');
         }
 
         if (! $this->isAllowedRepository($owner, $repo)) {
@@ -63,11 +61,24 @@ class GithubUrlParser
         return new GithubScriptReference(
             owner: $owner,
             repo: $repo,
-            sha: strtolower($sha),
+            sha: $sha,
             path: $path,
             kind: $kind,
             url: $url,
         );
+    }
+
+    private function normalizedRef(string $ref): string
+    {
+        if (preg_match('/^[0-9a-f]{7,40}$/i', $ref) === 1) {
+            return strtolower($ref);
+        }
+
+        if (preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/', $ref) !== 1) {
+            throw new InvalidGithubScriptUrlException('The URL must include a commit SHA, branch, or tag.');
+        }
+
+        return $ref;
     }
 
     /**

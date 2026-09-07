@@ -53,6 +53,19 @@ class GithubUrlParserTest extends TestCase
         $this->assertSame('scripts/demo.php', $reference->path);
     }
 
+    public function test_parses_a_blob_url_with_a_branch_name(): void
+    {
+        $reference = $this->parser->parse(
+            'https://github.com/New-test-orgs/laravel/blob/main/scripts/demo.php',
+        );
+
+        $this->assertSame('New-test-orgs', $reference->owner);
+        $this->assertSame('laravel', $reference->repo);
+        $this->assertSame('main', $reference->sha);
+        $this->assertSame('scripts/demo.php', $reference->path);
+        $this->assertSame(GithubObjectKind::Blob, $reference->kind);
+    }
+
     #[DataProvider('invalidUrls')]
     public function test_rejects_urls_that_are_not_allowed_commit_permalinks(string $url, string $message): void
     {
@@ -72,9 +85,9 @@ class GithubUrlParserTest extends TestCase
                 'https://shop.example.com/products/old-url-key',
                 'The URL must point to github.com.',
             ],
-            'branch name' => [
-                GithubAllowedRepositories::url().'/blob/main/scripts/demo.php',
-                'The URL must include a commit SHA, not a branch or tag name.',
+            'invalid ref' => [
+                GithubAllowedRepositories::url().'/blob/@main/scripts/demo.php',
+                'The URL must include a commit SHA, branch, or tag.',
             ],
             'other repository' => [
                 'https://github.com/octocat/Hello-World/blob/'.self::GITHUB_SHORT_SHA.'/README.md',
@@ -90,7 +103,7 @@ class GithubUrlParserTest extends TestCase
             ],
             'blob without path' => [
                 GithubAllowedRepositories::url().'/blob/'.self::GITHUB_SHORT_SHA,
-                'A file permalink must include a path after the commit SHA.',
+                'A file permalink must include a path after the commit, branch, or tag.',
             ],
             'path traversal' => [
                 GithubAllowedRepositories::url().'/blob/'.self::GITHUB_SHORT_SHA.'/../secret.php',

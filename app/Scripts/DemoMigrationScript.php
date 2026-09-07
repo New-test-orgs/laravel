@@ -3,6 +3,7 @@
 namespace App\Scripts;
 
 use App\Models\ScriptExecution;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Sleep;
 
 class DemoMigrationScript implements MigrationScript
@@ -17,12 +18,33 @@ class DemoMigrationScript implements MigrationScript
     {
         $stepSize = (int) ceil($execution->total / self::STEPS);
 
+        Log::info('Migration script started', [
+            'execution_id' => $execution->id,
+            'total' => $execution->total,
+            'steps' => self::STEPS,
+        ]);
+
         for ($step = 1; $step <= self::STEPS; $step++) {
             Sleep::for(self::STEP_SECONDS)->seconds();
 
+            $processed = min($execution->total, $step * $stepSize);
+
             $execution->update([
-                'processed' => min($execution->total, $step * $stepSize),
+                'processed' => $processed,
+            ]);
+
+            Log::info('Migration script step completed', [
+                'execution_id' => $execution->id,
+                'step' => $step,
+                'processed' => $processed,
+                'total' => $execution->total,
             ]);
         }
+
+        Log::info('Migration script finished', [
+            'execution_id' => $execution->id,
+            'processed' => $execution->processed,
+            'total' => $execution->total,
+        ]);
     }
 }

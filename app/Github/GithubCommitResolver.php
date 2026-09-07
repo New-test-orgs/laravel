@@ -19,13 +19,13 @@ class GithubCommitResolver
                             && ($exception->response->serverError() || $exception->response->status() === 429));
                 })
                 ->throw()
-                ->get("/repos/{$reference->owner}/{$reference->repo}/commits/{$reference->sha}")
+                ->get("/repos/{$reference->owner}/{$reference->repo}/commits/".rawurlencode($reference->sha))
                 ->json('sha');
         } catch (ConnectionException) {
             throw new InvalidGithubScriptUrlException('GitHub could not resolve that commit. Try again.');
         } catch (RequestException $exception) {
             if ($exception->response->notFound() || $exception->response->status() === 422) {
-                throw new InvalidGithubScriptUrlException('That commit does not exist in the allowed repository.');
+                throw new InvalidGithubScriptUrlException('That commit, branch, or tag does not exist in the allowed repository.');
             }
 
             throw new InvalidGithubScriptUrlException('GitHub could not resolve that commit. Try again.');

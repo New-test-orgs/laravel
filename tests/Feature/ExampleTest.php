@@ -108,6 +108,30 @@ class ExampleTest extends TestCase
         ]);
     }
 
+    public function test_run_script_resolves_a_branch_url_to_the_commit(): void
+    {
+        Queue::fake([RunScriptExecution::class]);
+        $this->fakeGithubCommitLookup();
+
+        StoreMigration::factory()->create([
+            'id' => 92831,
+        ]);
+
+        $url = 'https://github.com/New-test-orgs/laravel/blob/main/scripts/demo.php';
+
+        $this->from('/migrations/92831')->post('/migrations/92831/executions/run', [
+            'url' => $url,
+        ])->assertRedirect('/migrations/92831');
+
+        $this->assertDatabaseHas('script_executions', [
+            'store_migration_id' => 92831,
+            'script' => 'demo.php',
+            'status' => 'queued',
+            'url' => $url,
+            'commit' => self::GITHUB_FULL_SHA,
+        ]);
+    }
+
     public function test_run_script_rejects_a_repository_that_is_not_allowed(): void
     {
         StoreMigration::factory()->create([
