@@ -8,7 +8,7 @@
                 </svg>
                 <span>Journal</span>
                 <span class="text-zinc-300">/</span>
-                <span>Migrations</span>
+                <a href="{{ route('migrations.index') }}" class="transition hover:text-zinc-600">Migrations</a>
                 <span class="text-zinc-300">/</span>
                 <span class="text-zinc-500">#{{ $migration['id'] }}</span>
             </nav>
@@ -43,20 +43,44 @@
                     {{ $migration['repository'] }}
                 </a>
 
-                <form method="POST" action="{{ route('executions.run') }}">
-                    @csrf
-                    <button
-                        type="submit"
-                        class="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-brand-dark"
-                    >
-                        <svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.06-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z" />
-                        </svg>
-                        Run {{ $migration['run_script'] }}
-                    </button>
-                </form>
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-brand-dark"
+                    onclick="openPreviewModal('run-script-modal')"
+                >
+                    <svg class="size-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.06-6.86a1 1 0 0 0 0-1.7L9.53 4.29A1 1 0 0 0 8 5.14Z" />
+                    </svg>
+                    Run {{ $migration['run_script'] }}
+                </button>
             </div>
         </header>
+
+        <x-modal
+            name="run-script-modal"
+            :title="'Run '.$migration['run_script']"
+            :action="route('executions.run', $migration['id'])"
+            :submit="'Queue run'"
+            :open="$errors->has('url')"
+        >
+            <x-slot:description>Queue a custom script against this migration.</x-slot:description>
+
+            <label class="block">
+                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">URL</span>
+                <input
+                    type="url"
+                    name="url"
+                    value="{{ old('url') }}"
+                    required
+                    autofocus
+                    placeholder="https://example.com/products/old-url-key"
+                    class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 text-sm text-ink shadow-xs outline-none transition placeholder:text-zinc-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+                />
+                @error('url')
+                    <span class="mt-1.5 block text-[12px] text-red-600">{{ $message }}</span>
+                @enderror
+            </label>
+        </x-modal>
 
         @if (session('status'))
             <p class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -89,16 +113,22 @@
                                 $percent = (int) round(($execution['processed'] / $execution['total']) * 100);
                                 $statusStyles = [
                                     'completed' => 'bg-emerald-50 text-emerald-700',
+                                    'running' => 'bg-sky-50 text-sky-700',
+                                    'queued' => 'bg-amber-50 text-amber-700',
                                     'failed' => 'bg-red-50 text-red-600',
                                     'cancelled' => 'bg-zinc-100 text-zinc-500',
                                 ];
                                 $dotStyles = [
                                     'completed' => 'bg-emerald-500',
+                                    'running' => 'bg-sky-500',
+                                    'queued' => 'bg-amber-500',
                                     'failed' => 'bg-red-500',
                                     'cancelled' => 'bg-zinc-400',
                                 ];
                                 $barStyles = [
                                     'completed' => 'bg-emerald-500',
+                                    'running' => 'bg-sky-400',
+                                    'queued' => 'bg-amber-400',
                                     'failed' => 'bg-zinc-300',
                                     'cancelled' => 'bg-zinc-300',
                                 ];
@@ -112,6 +142,11 @@
                                 <td class="px-5 py-4">
                                     <div class="font-semibold text-ink">{{ $execution['script'] }}</div>
                                     <div class="mt-0.5 font-mono text-[12px] text-zinc-400">{{ $execution['id'] }}</div>
+                                    @if (! empty($execution['url']))
+                                        <div class="mt-1 max-w-xs truncate text-[12px] text-zinc-500" title="{{ $execution['url'] }}">
+                                            {{ $execution['url'] }}
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-3 py-4">
                                     <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium {{ $statusStyles[$execution['status']] }}">
