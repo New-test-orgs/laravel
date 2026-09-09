@@ -61,9 +61,46 @@
             :title="'Run '.$migration['run_script']"
             :action="route('executions.run', $migration['id'])"
             :submit="'Queue run'"
-            :open="$errors->has('url')"
+            :open="$errors->hasAny(['url', 'store_side'])"
         >
-            <x-slot:description>Paste a GitHub file permalink for a specific commit.</x-slot:description>
+            <x-slot:description>Paste a GitHub file permalink and choose the store the script should run against.</x-slot:description>
+
+            <fieldset>
+                <legend class="mb-1.5 block text-[13px] font-medium text-zinc-600">Store</legend>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 shadow-xs has-checked:border-brand has-checked:ring-2 has-checked:ring-brand/20">
+                        <input
+                            type="radio"
+                            name="store_side"
+                            value="source"
+                            class="mt-1 size-4 accent-brand"
+                            @checked(old('store_side', 'source') === 'source')
+                            required
+                        />
+                        <span>
+                            <span class="block text-sm font-medium text-ink">Source</span>
+                            <span class="mt-0.5 block text-[12px] text-zinc-500">{{ $migration['source'] }}</span>
+                        </span>
+                    </label>
+                    <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 shadow-xs has-checked:border-brand has-checked:ring-2 has-checked:ring-brand/20">
+                        <input
+                            type="radio"
+                            name="store_side"
+                            value="target"
+                            class="mt-1 size-4 accent-brand"
+                            @checked(old('store_side') === 'target')
+                            required
+                        />
+                        <span>
+                            <span class="block text-sm font-medium text-ink">Target</span>
+                            <span class="mt-0.5 block text-[12px] text-zinc-500">{{ $migration['target'] }}</span>
+                        </span>
+                    </label>
+                </div>
+                @error('store_side')
+                    <span class="mt-1.5 block text-[12px] text-red-600">{{ $message }}</span>
+                @enderror
+            </fieldset>
 
             <label class="block">
                 <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">GitHub URL</span>
@@ -99,6 +136,7 @@
                     <thead>
                         <tr class="border-b border-zinc-100 text-[11px] font-medium tracking-[0.08em] text-zinc-400 uppercase">
                             <th class="px-5 py-3 font-medium">Script</th>
+                            <th class="px-3 py-3 font-medium">Store</th>
                             <th class="px-3 py-3 font-medium">Status</th>
                             <th class="px-3 py-3 font-medium">Progress</th>
                             <th class="px-3 py-3 font-medium">Commit</th>
@@ -140,13 +178,29 @@
                             @endphp
                             <tr class="text-sm">
                                 <td class="px-5 py-4">
-                                    <div class="font-semibold text-ink">{{ $execution['script'] }}</div>
-                                    <div class="mt-0.5 font-mono text-[12px] text-zinc-400">{{ $execution['id'] }}</div>
+                                    <button
+                                        type="button"
+                                        class="flex items-start gap-2 text-left hover:text-brand"
+                                        data-run-logs
+                                        data-logs-url="{{ route('executions.logs', [$migration['id'], $execution['key']]) }}"
+                                        aria-expanded="false"
+                                        aria-controls="run-logs-{{ $execution['key'] }}"
+                                    >
+                                        <span class="mt-1 text-zinc-400 transition" data-run-logs-chevron>▸</span>
+                                        <span>
+                                            <span class="block font-semibold text-ink">{{ $execution['script'] }}</span>
+                                            <span class="mt-0.5 block font-mono text-[12px] text-zinc-400">{{ $execution['id'] }}</span>
+                                        </span>
+                                    </button>
                                     @if (! empty($execution['url']))
-                                        <div class="mt-1 max-w-xs truncate text-[12px] text-zinc-500" title="{{ $execution['url'] }}">
+                                        <div class="mt-1 max-w-xs truncate pl-6 text-[12px] text-zinc-500" title="{{ $execution['url'] }}">
                                             {{ $execution['url'] }}
                                         </div>
                                     @endif
+                                </td>
+                                <td class="px-3 py-4">
+                                    <span class="block font-medium text-ink">{{ $execution['store_side'] }}</span>
+                                    <span class="mt-0.5 block text-[12px] text-zinc-500">{{ $execution['store_cart'] }}</span>
                                 </td>
                                 <td class="px-3 py-4">
                                     <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium {{ $statusStyles[$execution['status']] }}">
@@ -184,6 +238,11 @@
                                 <td class="px-3 py-4 whitespace-nowrap text-zinc-500">{{ $execution['started'] }}</td>
                                 <td class="px-5 py-4 text-zinc-500">{{ $execution['duration'] }}</td>
                             </tr>
+                            <tr id="run-logs-{{ $execution['key'] }}" class="hidden" hidden data-run-logs-panel>
+                                <td colspan="8" class="bg-zinc-50 px-5 py-4">
+                                    <div data-run-logs-body class="text-[13px] text-zinc-400">Loading runner logs…</div>
+                                </td>
+                            </tr>
                         @endforeach
                     </tbody>
                 </table>
@@ -194,4 +253,103 @@
             Mock-up of a Cart2Cart “Custom Script Execution” feature. Replace this preview data with live API records when the backend is wired up.
         </p>
     </div>
+
+    <script>
+        const levelStyles = {
+            debug: 'text-zinc-400',
+            info: 'text-sky-300',
+            notice: 'text-sky-300',
+            warning: 'text-amber-300',
+            error: 'text-red-400',
+            critical: 'text-red-400',
+            alert: 'text-red-400',
+            emergency: 'text-red-400',
+        };
+
+        const addText = (parent, text, className) => {
+            const span = document.createElement('span');
+            span.className = className;
+            span.textContent = text;
+            parent.appendChild(span);
+        };
+
+        const renderLogs = (body, logs) => {
+            body.replaceChildren();
+
+            if (! Array.isArray(logs) || logs.length === 0) {
+                body.className = 'text-[13px] text-zinc-400';
+                body.textContent = 'No runner output yet.';
+                return;
+            }
+
+            const consoleBox = document.createElement('div');
+            consoleBox.className = 'overflow-x-auto rounded-xl bg-zinc-950 px-4 py-3 font-mono text-[12px] leading-6 text-zinc-300';
+
+            logs.forEach((log) => {
+                const line = document.createElement('div');
+                line.className = 'flex flex-wrap gap-x-3';
+
+                addText(line, log.logged_at ?? '', 'text-zinc-500');
+                addText(line, log.level ?? '', `w-16 uppercase ${levelStyles[log.level] ?? 'text-zinc-400'}`);
+                addText(line, log.message ?? '', '');
+
+                if (log.context_text) {
+                    addText(line, log.context_text, 'text-zinc-500');
+                }
+
+                consoleBox.appendChild(line);
+            });
+
+            body.className = '';
+            body.appendChild(consoleBox);
+        };
+
+        document.querySelectorAll('[data-run-logs]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const row = button.closest('tr');
+                const panel = row?.nextElementSibling;
+                const body = panel?.querySelector('[data-run-logs-body]');
+                const chevron = button.querySelector('[data-run-logs-chevron]');
+
+                if (! (panel instanceof HTMLTableRowElement) || ! body) {
+                    return;
+                }
+
+                const isOpen = ! panel.hasAttribute('hidden');
+
+                if (isOpen) {
+                    panel.hidden = true;
+                    panel.classList.add('hidden');
+                    button.setAttribute('aria-expanded', 'false');
+                    chevron?.classList.remove('rotate-90');
+                    return;
+                }
+
+                panel.hidden = false;
+                panel.classList.remove('hidden');
+                button.setAttribute('aria-expanded', 'true');
+                chevron?.classList.add('rotate-90');
+                body.className = 'text-[13px] text-zinc-400';
+                body.textContent = 'Loading runner logs…';
+
+                try {
+                    const response = await fetch(button.dataset.logsUrl, {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (! response.ok) {
+                        throw new Error('Failed to load runner logs.');
+                    }
+
+                    const payload = await response.json();
+                    renderLogs(body, payload.logs);
+                } catch {
+                    body.textContent = 'Could not load runner logs.';
+                }
+            });
+        });
+    </script>
 </x-layouts.app>

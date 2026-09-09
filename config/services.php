@@ -39,4 +39,10 @@ return [
         'token' => env('GITHUB_TOKEN'),
     ],
 
+    'cart2cart' => [
+        'base_url' => env('C2C_API_BASE_URL', 'https://api.newapp.shopping-cart-migration.com'),
+        'email' => env('C2C_USER_EMAIL'),
+        'password' => env('C2C_USER_PASSWORD'),
+    ],
+
 ];

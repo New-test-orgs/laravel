@@ -1,58 +1,101 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Script Executions
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel web app for previewing store migrations and running PHP scripts from GitHub. You create a migration, paste a permalink to an allowed repository, and a queued job fetches, loads, and executes the script. Progress and logs are stored in the database and shown in the UI.
 
-## About Laravel
+Scripts must come from one of these repositories:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- [cart2cart/cart2cart-customization-laravel](https://github.com/cart2cart/cart2cart-customization-laravel)
+- [New-test-orgs/laravel](https://github.com/New-test-orgs/laravel)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Use a blob permalink with a commit SHA (short or full), for example:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+https://github.com/cart2cart/cart2cart-customization-laravel/blob/a1b2c3d/scripts/demo.php
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+When a script is queued, the worker loads source and target store credentials from Cart2Cart and attaches them to the `ScriptExecution`. Scripts can read the selected store with `$execution->storeCredentials()` or both stores with `$execution->storeAccess()`. `scripts/dump-store-credentials.php` logs those credentials so you can confirm the payload.
 
-## Contributing
+## Requirements
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- PHP 8.3 or later, with Composer
+- Node.js 20.19 or later, with npm
+- SQLite (default) or another database supported by Laravel
 
-## Code of Conduct
+## Getting started
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+git clone <repository-url>
+cd laravel
+composer run setup
+```
 
-## Security Vulnerabilities
+That command installs PHP and Node dependencies, copies `.env.example` to `.env` if needed, generates the application key, runs migrations, and builds frontend assets.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Alternatively, step by step:
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm install
+npm run build
+```
+
+## Configuration
+
+Edit `.env` after setup. The values that matter for this app:
+
+| Variable | Purpose |
+| --- | --- |
+| `APP_URL` | Base URL (default `http://localhost:8000`) |
+| `DB_CONNECTION` | Database driver (default `sqlite`) |
+| `QUEUE_CONNECTION` | Must stay `database` so script jobs run in the background |
+| `GITHUB_TOKEN` | GitHub personal access token used to fetch script files |
+| `C2C_API_BASE_URL` | Cart2Cart REST API base URL (default `https://api.newapp.shopping-cart-migration.com`) |
+| `C2C_USER_EMAIL` | Cart2Cart admin login email |
+| `C2C_USER_PASSWORD` | Cart2Cart admin login password |
+
+Create `database/database.sqlite` if you use SQLite and the file does not exist yet:
+
+```bash
+touch database/database.sqlite
+php artisan migrate
+```
+
+## Running the app
+
+Start the HTTP server, queue worker, log tail, and Vite together:
+
+```bash
+composer run dev
+```
+
+Or run them separately:
+
+```bash
+php artisan serve
+php artisan queue:work
+php artisan pail
+npm run dev
+```
+
+Open [http://localhost:8000](http://localhost:8000).
+
+Script jobs time out after 30 minutes and are not retried. The queue worker must stay running or queued executions will not start.
+
+## Tests
+
+```bash
+composer test
+```
+
+Or:
+
+```bash
+php artisan test
+```
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT

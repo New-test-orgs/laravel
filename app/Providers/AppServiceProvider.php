@@ -35,5 +35,19 @@ class AppServiceProvider extends ServiceProvider
 
             return $request;
         });
+
+        Http::macro('cart2cart', function (?string $accessToken = null) {
+            $request = Http::baseUrl((string) config('services.cart2cart.base_url'))
+                ->acceptJson()
+                ->asJson()
+                ->connectTimeout(3)
+                ->timeout(10);
+
+            if (is_string($accessToken) && $accessToken !== '') {
+                $request = $request->withToken($accessToken);
+            }
+
+            return $request;
+        });
     }
 }

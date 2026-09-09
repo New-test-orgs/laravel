@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Rules\Github\GithubScriptUrl;
+use App\StoreSide;
 use App\Support\PreviewJournal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ScriptExecutionController extends Controller
@@ -26,16 +28,22 @@ class ScriptExecutionController extends Controller
     {
         abort_unless($journal->find($migration) !== null, 404);
 
-        $request->validate([
+        $validated = $request->validate([
             'url' => ['required', 'string', 'url', 'max:2048', $githubScriptUrl],
+            'store_side' => ['required', Rule::enum(StoreSide::class)],
         ]);
 
         $script = $githubScriptUrl->reference;
 
         abort_if($script === null, 500);
 
-        $journal->queueRun($migration, $script);
+        $storeSide = StoreSide::from($validated['store_side']);
 
-        return back()->with('status', "Queued {$script->filename()} for migration #{$migration} with {$script->url}.");
+        $journal->queueRun($migration, $script, $storeSide);
+
+        return back()->with(
+            'status',
+            "Queued {$script->filename()} for the {$storeSide->label()} store on migration #{$migration}.",
+        );
     }
 }

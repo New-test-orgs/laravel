@@ -55,6 +55,14 @@ class StoreMigration extends Model
     }
 
     /**
+     * @return HasMany<ScriptExecutionLog, $this>
+     */
+    public function scriptExecutionLogs(): HasMany
+    {
+        return $this->hasMany(ScriptExecutionLog::class);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toJournalRow(): array

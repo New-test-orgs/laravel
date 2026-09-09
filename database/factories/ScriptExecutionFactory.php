@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Github\GithubAllowedRepositories;
 use App\Models\ScriptExecution;
 use App\Models\StoreMigration;
+use App\StoreSide;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -20,6 +21,7 @@ class ScriptExecutionFactory extends Factory
         return [
             'store_migration_id' => StoreMigration::factory(),
             'script' => 'demo.php',
+            'store_side' => StoreSide::Source,
             'status' => 'queued',
             'processed' => 0,
             'total' => 5000,

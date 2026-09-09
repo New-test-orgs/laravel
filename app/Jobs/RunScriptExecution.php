@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Cart2Cart\Cart2CartClient;
 use App\Github\GithubScriptFetcher;
 use App\Github\GithubScriptLoader;
 use App\Github\GithubUrlParser;
@@ -25,9 +26,12 @@ class RunScriptExecution implements ShouldQueue
         GithubUrlParser $parser,
         GithubScriptFetcher $fetcher,
         GithubScriptLoader $loader,
+        Cart2CartClient $cart2Cart,
     ): void {
         Log::withContext([
             'script_execution_id' => $this->scriptExecution->id,
+            'store_migration_id' => $this->scriptExecution->store_migration_id,
+            'store_side' => $this->scriptExecution->store_side->value,
         ]);
 
         $this->scriptExecution->update([
@@ -42,6 +46,10 @@ class RunScriptExecution implements ShouldQueue
 
         $reference = $parser->parse((string) $this->scriptExecution->url)
             ->withSha((string) $this->scriptExecution->commit);
+
+        $this->scriptExecution->setStoreAccess(
+            $cart2Cart->storeAccess($this->scriptExecution->store_migration_id),
+        );
 
         $script = $loader->load($fetcher->fetch($reference));
         $script->handle($this->scriptExecution);
@@ -64,6 +72,7 @@ class RunScriptExecution implements ShouldQueue
 
         Log::error('Script execution failed', [
             'script_execution_id' => $this->scriptExecution->id,
+            'store_migration_id' => $this->scriptExecution->store_migration_id,
             'exception' => $exception,
         ]);
     }

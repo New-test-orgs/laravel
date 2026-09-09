@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Jobs\RunScriptExecution;
 use App\Models\StoreMigration;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -25,6 +27,11 @@ class MigrationPageTest extends TestCase
         $response->assertSee('All migrations');
         $response->assertSee('#92831');
         $response->assertSee('new-migration-modal');
+        $response->assertSee('Migration ID');
+        $response->assertSee('Loading carts from Cart2Cart');
+        $response->assertDontSee('GitHub URL');
+        $response->assertDontSee('name="source"', false);
+        $response->assertDontSee('name="target"', false);
     }
 
     public function test_unknown_migration_returns_404(): void
@@ -34,16 +41,13 @@ class MigrationPageTest extends TestCase
         $response->assertNotFound();
     }
 
-    public function test_creates_a_temporary_migration_without_platforms(): void
+    public function test_creates_a_temporary_migration_from_cart2cart_source_and_target(): void
     {
         Queue::fake([RunScriptExecution::class]);
-        $this->fakeGithubCommitLookup();
-
-        $url = $this->allowedGithubScriptUrl();
+        $this->fakeCart2CartStoreAccess(44102, 'OpenCart', 'Shopify');
 
         $response = $this->from('/')->post('/migrations', [
             'id' => 44102,
-            'url' => $url,
         ]);
 
         $response->assertRedirect('/');
@@ -51,86 +55,48 @@ class MigrationPageTest extends TestCase
 
         $this->get('/')
             ->assertSee('#44102')
-            ->assertSee('Unspecified')
-            ->assertSee('demo.php');
+            ->assertSee('OpenCart')
+            ->assertSee('Shopify');
 
         $this->get('/migrations/44102')
             ->assertOk()
             ->assertSee('Script Executions')
-            ->assertSee('Unspecified')
-            ->assertSee($url);
+            ->assertSee('OpenCart')
+            ->assertSee('GitHub URL');
 
         $this->assertDatabaseHas('store_migrations', [
             'id' => 44102,
-            'source' => 'Unspecified',
-            'target' => 'Unspecified',
+            'source' => 'OpenCart',
+            'target' => 'Shopify',
             'status' => 'active',
         ]);
 
-        $this->assertDatabaseHas('script_executions', [
+        $this->assertDatabaseMissing('script_executions', [
             'store_migration_id' => 44102,
-            'script' => 'demo.php',
-            'status' => 'queued',
-            'url' => $url,
-            'commit' => self::GITHUB_FULL_SHA,
         ]);
 
-        Queue::assertPushed(RunScriptExecution::class, function (RunScriptExecution $job) use ($url): bool {
-            return $job->scriptExecution->store_migration_id === 44102
-                && $job->scriptExecution->url === $url
-                && $job->scriptExecution->commit === self::GITHUB_FULL_SHA;
-        });
+        Queue::assertNothingPushed();
+        Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/v1/admin/migrations/44102/stores/access'));
     }
 
-    public function test_creates_a_temporary_migration_with_source_and_target(): void
-    {
-        Queue::fake([RunScriptExecution::class]);
-        $this->fakeGithubCommitLookup();
-
-        $response = $this->from('/')->post('/migrations', [
-            'id' => 44102,
-            'url' => $this->allowedGithubScriptUrl(),
-            'source' => 'OpenCart',
-            'target' => 'Shopify',
-        ]);
-
-        $response->assertRedirect('/');
-
-        $this->get('/')
-            ->assertSee('#44102')
-            ->assertSee('OpenCart')
-            ->assertSee('Shopify');
-
-        $this->assertDatabaseHas('store_migrations', [
-            'id' => 44102,
-            'source' => 'OpenCart',
-            'target' => 'Shopify',
-        ]);
-    }
-
-    public function test_rejects_missing_migration_id_and_run_url(): void
+    public function test_rejects_a_missing_migration_id(): void
     {
         $response = $this->from('/')->post('/migrations');
 
         $response->assertRedirect('/');
-        $response->assertSessionHasErrors(['id', 'url']);
         $response->assertSessionHasErrors([
             'id' => 'The id field is required.',
-            'url' => 'The url field is required.',
         ]);
     }
 
     public function test_rejects_a_duplicate_migration_id(): void
     {
-        $this->fakeGithubCommitLookup();
-
         StoreMigration::factory()->create([
             'id' => 92831,
         ]);
 
         $response = $this->from('/')->post('/migrations', [
             'id' => 92831,
-            'url' => $this->allowedGithubScriptUrl(),
         ]);
 
         $response->assertRedirect('/');
@@ -139,29 +105,31 @@ class MigrationPageTest extends TestCase
         ]);
     }
 
-    public function test_rejects_an_invalid_run_url(): void
+    public function test_rejects_a_cart2cart_store_access_failure(): void
     {
-        $response = $this->from('/')->post('/migrations', [
+        Queue::fake([RunScriptExecution::class]);
+        $this->fakeCart2CartStoreAccess(
+            migrationId: 44102,
+            error: [
+                'success' => false,
+                'error' => ['message' => 'Migration not found'],
+                'code' => 404,
+            ],
+            status: 404,
+        );
+
+        $response = $this->from('/')->followingRedirects()->post('/migrations', [
             'id' => 44102,
-            'url' => 'not-a-url',
         ]);
 
-        $response->assertRedirect('/');
-        $response->assertSessionHasErrors(['url']);
-    }
+        $response->assertOk();
+        $response->assertSee('Migration not found');
+        $response->assertSee('role="alert"', false);
 
-    public function test_rejects_unknown_platforms(): void
-    {
-        $this->fakeGithubCommitLookup();
-
-        $response = $this->from('/')->post('/migrations', [
+        $this->assertDatabaseMissing('store_migrations', [
             'id' => 44102,
-            'url' => $this->allowedGithubScriptUrl(),
-            'source' => 'NotACart',
-            'target' => 'AlsoFake',
         ]);
 
-        $response->assertRedirect('/');
-        $response->assertSessionHasErrors(['source', 'target']);
+        Queue::assertNothingPushed();
     }
 }

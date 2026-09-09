@@ -41,9 +41,10 @@
             title="Start a migration"
             :action="route('migrations.store')"
             submit="Start migration"
-            :open="$errors->hasAny(['id', 'url', 'source', 'target'])"
+            loading="Loading carts from Cart2Cart…"
+            :open="$errors->has('id')"
         >
-            <x-slot:description>Identify the Cart2Cart job and the GitHub commit permalink the first script should run from.</x-slot:description>
+            <x-slot:description>Identify the Cart2Cart job. Source and target carts are loaded from Cart2Cart.</x-slot:description>
 
             <label class="block">
                 <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">Migration ID</span>
@@ -54,58 +55,12 @@
                     required
                     value="{{ old('id') }}"
                     placeholder="92831"
-                    class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 font-mono text-sm text-ink shadow-xs outline-none transition placeholder:text-zinc-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    @class([
+                        'h-11 w-full rounded-lg border bg-white px-3.5 font-mono text-sm text-ink shadow-xs outline-none transition placeholder:text-zinc-400 focus:ring-2',
+                        'border-red-300 focus:border-red-500 focus:ring-red-500/20' => $errors->has('id'),
+                        'border-zinc-200 focus:border-brand focus:ring-brand/20' => ! $errors->has('id'),
+                    ])
                 />
-                @error('id')
-                    <span class="mt-1.5 block text-[12px] text-red-600">{{ $message }}</span>
-                @enderror
-            </label>
-
-            <label class="block">
-                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">GitHub URL</span>
-                <input
-                    type="url"
-                    name="url"
-                    required
-                    value="{{ old('url') }}"
-                    placeholder="{{ $scriptUrlPlaceholder }}"
-                    class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 text-sm text-ink shadow-xs outline-none transition placeholder:text-zinc-400 focus:border-brand focus:ring-2 focus:ring-brand/20"
-                />
-                @error('url')
-                    <span class="mt-1.5 block text-[12px] text-red-600">{{ $message }}</span>
-                @enderror
-            </label>
-
-            <label class="block">
-                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">Source</span>
-                <select
-                    name="source"
-                    class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 text-sm text-ink shadow-xs outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-                >
-                    <option value="">Optional</option>
-                    @foreach ($platforms as $platform)
-                        <option value="{{ $platform }}" @selected(old('source') === $platform)>{{ $platform }}</option>
-                    @endforeach
-                </select>
-                @error('source')
-                    <span class="mt-1.5 block text-[12px] text-red-600">{{ $message }}</span>
-                @enderror
-            </label>
-
-            <label class="block">
-                <span class="mb-1.5 block text-[13px] font-medium text-zinc-600">Target</span>
-                <select
-                    name="target"
-                    class="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3.5 text-sm text-ink shadow-xs outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-                >
-                    <option value="">Optional</option>
-                    @foreach ($platforms as $platform)
-                        <option value="{{ $platform }}" @selected(old('target') === $platform)>{{ $platform }}</option>
-                    @endforeach
-                </select>
-                @error('target')
-                    <span class="mt-1.5 block text-[12px] text-red-600">{{ $message }}</span>
-                @enderror
             </label>
         </x-modal>
 

@@ -6,38 +6,13 @@ use App\Github\GithubAllowedRepositories;
 use App\Github\GithubScriptReference;
 use App\Jobs\RunScriptExecution;
 use App\Models\ScriptExecution;
+use App\Models\ScriptExecutionLog;
 use App\Models\StoreMigration;
+use App\StoreSide;
 
 class PreviewJournal
 {
-    /**
-     * @var list<string>
-     */
-    public const PLATFORMS = [
-        'Magento 1.9',
-        'Magento 2',
-        'Shopify',
-        'Shopify Plus',
-        'WooCommerce',
-        'BigCommerce',
-        'OpenCart',
-        'PrestaShop',
-    ];
-
     public function __construct(private GithubAllowedRepositories $githubRepositories) {}
-
-    /**
-     * @return list<string>
-     */
-    public function platforms(): array
-    {
-        return self::PLATFORMS;
-    }
-
-    public function scriptUrlPlaceholder(): string
-    {
-        return $this->githubRepositories->examplePermalink();
-    }
 
     /**
      * @return list<array<string, mixed>>
@@ -70,12 +45,12 @@ class PreviewJournal
     /**
      * @return array<string, mixed>
      */
-    public function create(?string $source, ?string $target, int $id): array
+    public function create(string $source, string $target, int $id): array
     {
         return StoreMigration::query()->create([
             'id' => $id,
-            'source' => $source ?: 'Unspecified',
-            'target' => $target ?: 'Unspecified',
+            'source' => $source,
+            'target' => $target,
             'status' => 'active',
             'repository' => GithubAllowedRepositories::REPO,
             'owner' => 'You',
@@ -88,12 +63,13 @@ class PreviewJournal
     /**
      * @return array<string, mixed>
      */
-    public function queueRun(int $migrationId, GithubScriptReference $script): array
+    public function queueRun(int $migrationId, GithubScriptReference $script, StoreSide $storeSide): array
     {
         $migration = StoreMigration::query()->findOrFail($migrationId);
 
         $execution = $migration->scriptExecutions()->create([
             'script' => $script->filename(),
+            'store_side' => $storeSide,
             'status' => 'queued',
             'processed' => 0,
             'total' => 5000,
@@ -112,6 +88,8 @@ class PreviewJournal
 
         RunScriptExecution::dispatch($execution);
 
+        $execution->setRelation('storeMigration', $migration);
+
         return $execution->toJournalRow();
     }
 
@@ -121,11 +99,33 @@ class PreviewJournal
     public function executionsFor(int $migrationId): array
     {
         return ScriptExecution::query()
+            ->with('storeMigration')
             ->where('store_migration_id', $migrationId)
             ->orderByDesc('started_at')
             ->orderByDesc('id')
             ->get()
             ->map(fn (ScriptExecution $execution): array => $execution->toJournalRow())
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>|null
+     */
+    public function logsFor(int $migrationId, int $executionId): ?array
+    {
+        $execution = ScriptExecution::query()
+            ->where('store_migration_id', $migrationId)
+            ->whereKey($executionId)
+            ->first();
+
+        if ($execution === null) {
+            return null;
+        }
+
+        return $execution->logs()
+            ->orderBy('id')
+            ->get()
+            ->map(fn (ScriptExecutionLog $log): array => $log->toJournalRow())
             ->all();
     }
 

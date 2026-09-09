@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Rules\Github\GithubScriptUrl;
+use App\Cart2Cart\Cart2CartClient;
+use App\Cart2Cart\Cart2CartException;
 use App\Support\PreviewJournal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class MigrationController extends Controller
@@ -15,12 +16,10 @@ class MigrationController extends Controller
     {
         return view('migrations.index', [
             'migrations' => $journal->migrations(),
-            'platforms' => $journal->platforms(),
-            'scriptUrlPlaceholder' => $journal->scriptUrlPlaceholder(),
         ]);
     }
 
-    public function store(Request $request, PreviewJournal $journal, GithubScriptUrl $githubScriptUrl): RedirectResponse
+    public function store(Request $request, PreviewJournal $journal, Cart2CartClient $cart2Cart): RedirectResponse
     {
         $validated = $request->validate([
             'id' => [
@@ -33,26 +32,27 @@ class MigrationController extends Controller
                     }
                 },
             ],
-            'url' => ['required', 'string', 'url', 'max:2048', $githubScriptUrl],
-            'source' => ['nullable', 'string', Rule::in($journal->platforms())],
-            'target' => ['nullable', 'string', Rule::in($journal->platforms())],
         ]);
 
+        $id = (int) $validated['id'];
+
+        try {
+            $access = $cart2Cart->storeAccess($id);
+        } catch (Cart2CartException $exception) {
+            throw ValidationException::withMessages([
+                'id' => $exception->getMessage(),
+            ]);
+        }
+
         $migration = $journal->create(
-            $validated['source'] ?? null,
-            $validated['target'] ?? null,
-            (int) $validated['id'],
+            $access->source->cartLabel(),
+            $access->target->cartLabel(),
+            $id,
         );
-
-        $script = $githubScriptUrl->reference;
-
-        abort_if($script === null, 500);
-
-        $journal->queueRun($migration['id'], $script);
 
         return back()->with(
             'status',
-            "Started temporary migration #{$migration['id']} and queued a run for {$script->url}.",
+            "Started temporary migration #{$migration['id']}.",
         );
     }
 }

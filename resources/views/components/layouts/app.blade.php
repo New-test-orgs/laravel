@@ -1,4 +1,4 @@
-@props(['title' => null])
+@props(['title' => null, 'refresh' => null])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -9,6 +9,10 @@
         <title>{{ $title ?? config('app.name') }}</title>
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @if ($refresh)
+            <meta http-equiv="refresh" content="{{ $refresh }}">
+        @endif
+        @stack('head')
     </head>
     <body class="min-h-screen bg-canvas font-sans text-ink antialiased">
         {{ $slot }}

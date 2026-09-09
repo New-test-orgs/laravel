@@ -73,4 +73,60 @@ abstract class TestCase extends BaseTestCase
             ),
         ]);
     }
+
+    /**
+     * @param  array<string, mixed>|null  $error
+     */
+    protected function fakeCart2CartStoreAccess(
+        int $migrationId,
+        mixed $sourceCartId = 'OpenCart',
+        mixed $targetCartId = 'Shopify',
+        ?array $error = null,
+        int $status = 200,
+    ): void {
+        config([
+            'services.cart2cart.email' => 'c2c@example.com',
+            'services.cart2cart.password' => 'secret',
+        ]);
+
+        $baseUrl = rtrim((string) config('services.cart2cart.base_url'), '/');
+
+        Http::preventStrayRequests();
+        Http::fake([
+            $baseUrl.'/v1/auth/login' => [
+                'success' => true,
+                'payload' => ['access_token' => '12|c2c-access'],
+                'code' => 200,
+            ],
+            $baseUrl.'/v1/admin/migrations/'.$migrationId.'/stores/access' => Http::response(
+                $error ?? [
+                    'success' => true,
+                    'payload' => [
+                        'source' => [
+                            'cart_id' => $sourceCartId,
+                            'url' => 'https://source.example',
+                            'account_email' => 'source@example.com',
+                            'account_token' => 'source-store-token',
+                            'connection' => 'file',
+                            'cart_version' => '2.0',
+                            'vars' => ['bridge' => 'abc'],
+                            'validated' => true,
+                        ],
+                        'target' => [
+                            'cart_id' => $targetCartId,
+                            'url' => 'https://target.example',
+                            'account_email' => 'target@example.com',
+                            'account_token' => 'target-store-token',
+                            'connection' => 'api',
+                            'cart_version' => null,
+                            'vars' => [],
+                            'validated' => false,
+                        ],
+                    ],
+                    'code' => 200,
+                ],
+                $status,
+            ),
+        ]);
+    }
 }

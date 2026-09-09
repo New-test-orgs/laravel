@@ -3,6 +3,7 @@
     'title',
     'action',
     'submit',
+    'loading' => 'Loading…',
     'open' => false,
 ])
 
@@ -15,8 +16,20 @@
     data-preview-modal
     aria-labelledby="{{ $name }}-title"
 >
-    <form method="POST" action="{{ $action }}" class="flex flex-col">
+    <form method="POST" action="{{ $action }}" class="relative flex flex-col" onsubmit="return setPreviewModalLoading(this) !== false">
         @csrf
+
+        <div
+            data-preview-modal-loading
+            class="absolute inset-0 z-10 hidden items-center justify-center gap-3 rounded-2xl bg-white/85"
+            aria-hidden="true"
+        >
+            <svg class="size-8 animate-spin text-brand" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+                <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V1C5.373 1 1 5.373 1 12h3z" />
+            </svg>
+            <p class="text-sm font-medium text-zinc-600">{{ $loading }}</p>
+        </div>
 
         <div class="flex items-start gap-3 border-b border-zinc-100 bg-canvas px-5 py-4">
             <span class="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
@@ -45,6 +58,14 @@
         </div>
 
         <div class="flex flex-col gap-4 px-5 py-5">
+            @if ($errors->any())
+                <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+                    @foreach ($errors->all() as $message)
+                        <p @class(['mt-1' => ! $loop->first])>{{ $message }}</p>
+                    @endforeach
+                </div>
+            @endif
+
             {{ $slot }}
         </div>
 
@@ -58,7 +79,7 @@
             </button>
             <button
                 type="submit"
-                class="rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-brand-dark"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-brand-dark"
             >
                 {{ $submit }}
             </button>
@@ -89,17 +110,64 @@
         window.closePreviewModal = function (id) {
             const modal = document.getElementById(id);
 
-            if (! modal || typeof modal.close !== 'function' || ! modal.open) {
+            if (! modal || modal.dataset.loading === 'true' || typeof modal.close !== 'function' || ! modal.open) {
                 return;
             }
 
             modal.close();
         };
 
+        window.setPreviewModalLoading = function (form) {
+            if (! (form instanceof HTMLFormElement)) {
+                return;
+            }
+
+            if (form.dataset.submitting === 'true') {
+                return false;
+            }
+
+            form.dataset.submitting = 'true';
+
+            const modal = form.closest('dialog');
+
+            if (modal) {
+                modal.dataset.loading = 'true';
+                modal.setAttribute('aria-busy', 'true');
+            }
+
+            const overlay = form.querySelector('[data-preview-modal-loading]');
+
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex', 'flex-col');
+                overlay.setAttribute('aria-hidden', 'false');
+            }
+
+            form.querySelectorAll('button').forEach(function (element) {
+                if (element.type === 'submit') {
+                    return;
+                }
+
+                element.disabled = true;
+            });
+        };
+
+        document.addEventListener('cancel', function (event) {
+            const modal = event.target;
+
+            if (modal instanceof HTMLDialogElement && modal.dataset.loading === 'true') {
+                event.preventDefault();
+            }
+        });
+
         document.addEventListener('click', function (event) {
             const modal = event.target;
 
             if (! (modal instanceof HTMLDialogElement) || ! modal.hasAttribute('data-preview-modal')) {
+                return;
+            }
+
+            if (modal.dataset.loading === 'true') {
                 return;
             }
 
