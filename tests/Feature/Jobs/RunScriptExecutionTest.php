@@ -6,12 +6,10 @@ use App\Cart2Cart\Cart2CartException;
 use App\Jobs\RunScriptExecution;
 use App\Models\ScriptExecution;
 use App\Models\ScriptExecutionLog;
-use App\StoreSide;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Sleep;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class RunScriptExecutionTest extends TestCase
@@ -110,19 +108,7 @@ class RunScriptExecutionTest extends TestCase
         ]);
     }
 
-    /**
-     * @return array<string, array{0: StoreSide, 1: string}>
-     */
-    public static function storeSides(): array
-    {
-        return [
-            'source' => [StoreSide::Source, 'source-store-token'],
-            'target' => [StoreSide::Target, 'target-store-token'],
-        ];
-    }
-
-    #[DataProvider('storeSides')]
-    public function test_dumps_store_credentials_from_cart2cart_in_script_logs(StoreSide $storeSide, string $accountToken): void
+    public function test_dumps_source_and_target_store_credentials_from_env_in_script_logs(): void
     {
         Storage::fake('local');
 
@@ -131,7 +117,6 @@ class RunScriptExecutionTest extends TestCase
 
         $execution = ScriptExecution::factory()->create([
             'status' => 'queued',
-            'store_side' => $storeSide,
             'processed' => 0,
             'total' => 5000,
         ]);
@@ -150,12 +135,24 @@ class RunScriptExecutionTest extends TestCase
             ->where('message', 'Store credentials for script execution')
             ->sole();
 
-        $this->assertSame($storeSide->value, $log->context['store_side']);
-        $this->assertSame($accountToken, $log->context['account_token']);
-        $this->assertSame(
-            $storeSide === StoreSide::Source ? 'https://source.example' : 'https://target.example',
-            $log->context['url'],
-        );
+        $this->assertSame('OpenCart', $log->context['SOURCE_CART_ID']);
+        $this->assertSame('https://source.example', $log->context['SOURCE_STORE_URL']);
+        $this->assertSame('source@example.com', $log->context['SOURCE_ACCOUNT_EMAIL']);
+        $this->assertSame('source-store-token', $log->context['SOURCE_ACCOUNT_TOKEN']);
+        $this->assertSame('file', $log->context['SOURCE_CONNECTION']);
+        $this->assertSame('2.0', $log->context['SOURCE_CART_VERSION']);
+        $this->assertSame('{"bridge":"abc"}', $log->context['SOURCE_VARS']);
+        $this->assertTrue($log->context['SOURCE_VALIDATED']);
+        $this->assertSame('Shopify', $log->context['TARGET_CART_ID']);
+        $this->assertSame('https://target.example', $log->context['TARGET_STORE_URL']);
+        $this->assertSame('target@example.com', $log->context['TARGET_ACCOUNT_EMAIL']);
+        $this->assertSame('target-store-token', $log->context['TARGET_ACCOUNT_TOKEN']);
+        $this->assertSame('api', $log->context['TARGET_CONNECTION']);
+        $this->assertSame('', $log->context['TARGET_CART_VERSION']);
+        $this->assertSame('[]', $log->context['TARGET_VARS']);
+        $this->assertFalse($log->context['TARGET_VALIDATED']);
+        $this->assertNull(env('SOURCE_ACCOUNT_TOKEN'));
+        $this->assertNull(env('TARGET_ACCOUNT_TOKEN'));
     }
 
     public function test_marks_the_execution_as_failed_when_cart2cart_store_access_fails(): void

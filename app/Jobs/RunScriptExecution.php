@@ -7,6 +7,7 @@ use App\Github\GithubScriptFetcher;
 use App\Github\GithubScriptLoader;
 use App\Github\GithubUrlParser;
 use App\Models\ScriptExecution;
+use App\Scripts\StoreCredentialEnvironment;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Attributes\Timeout;
@@ -27,6 +28,7 @@ class RunScriptExecution implements ShouldQueue
         GithubScriptFetcher $fetcher,
         GithubScriptLoader $loader,
         Cart2CartClient $cart2Cart,
+        StoreCredentialEnvironment $storeCredentials,
     ): void {
         Log::withContext([
             'script_execution_id' => $this->scriptExecution->id,
@@ -47,12 +49,14 @@ class RunScriptExecution implements ShouldQueue
         $reference = $parser->parse((string) $this->scriptExecution->url)
             ->withSha((string) $this->scriptExecution->commit);
 
-        $this->scriptExecution->setStoreAccess(
-            $cart2Cart->storeAccess($this->scriptExecution->store_migration_id),
-        );
+        $access = $cart2Cart->storeAccess($this->scriptExecution->store_migration_id);
+        $this->scriptExecution->setStoreAccess($access);
 
         $script = $loader->load($fetcher->fetch($reference));
-        $script->handle($this->scriptExecution);
+
+        $storeCredentials->during($access, function () use ($script): void {
+            $script->handle($this->scriptExecution);
+        });
 
         $this->scriptExecution->update([
             'status' => 'completed',
